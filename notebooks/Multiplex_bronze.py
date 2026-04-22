@@ -5,7 +5,27 @@ dbutils.fs.ls("s3://dalhussein-courses/DE-Pro/datasets/bookstore/v1/")
 
 # COMMAND ----------
 
-dbutils.fs.cp("s3://dalhussein-courses/DE-Pro/datasets/bookstore/v1/kafka-streaming", "/Volumes/dev/pro_landing_zone/kafka_sources/books_kafka_row/", recurse=True)
+# Remove row data from landing zone 
+dbutils.fs.rm("/Volumes/dev/pro_landing_zone/kafka_sources/books_kafka_row", True)
+
+# COMMAND ----------
+
+# Remove checkpoings
+dbutils.fs.rm("/Volumes/dev/pro_landing_zone/checkpoints/", True) 
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SHOW TABLES IN dev.silver
+
+# COMMAND ----------
+
+dbutils.fs.ls("s3://dalhussein-courses/DE-Pro/datasets/bookstore/v1/kafka-streaming")
+
+# COMMAND ----------
+
+for file in ("01", "02", "03", "04", "05"):
+    dbutils.fs.cp(f"s3://dalhussein-courses/DE-Pro/datasets/bookstore/v1/kafka-streaming/{file}.json", "/Volumes/dev/pro_landing_zone/kafka_sources/books_kafka_row/", recurse=True)
 
 # COMMAND ----------
 
@@ -148,7 +168,7 @@ df.show()
 # Process orders from bronze to silver
 from pyspark.sql import functions as F
 
-def process_orders():
+def process_orders_silver():
     df = (
         spark.readStream
             .table("dev.multiplex_bronze.kafka_bronze")
@@ -168,7 +188,7 @@ def process_orders():
     )
     df.awaitTermination()
 
-process_orders()
+process_orders_silver()
 
 # COMMAND ----------
 
@@ -177,4 +197,4 @@ process_orders()
 # MAGIC   *
 # MAGIC FROM 
 # MAGIC   dev.silver.orders_silver
-# MAGIC WHERE quantity <= 0
+# MAGIC --WHERE quantity <= 0
